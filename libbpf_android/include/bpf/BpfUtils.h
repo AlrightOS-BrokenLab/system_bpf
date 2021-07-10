@@ -18,6 +18,7 @@
 #define BPF_BPFUTILS_H
 
 #include <linux/bpf.h>
+#include <android-base/properties.h>
 #include <linux/if_ether.h>
 #include <linux/in.h>
 #include <linux/unistd.h>
@@ -163,6 +164,26 @@ int setrlimitForTest();
 std::string BpfLevelToString(BpfLevel BpfLevel);
 BpfLevel getBpfSupportLevel();
 int synchronizeKernelRCU();
+int setrlimitForTest();
+
+#define KVER(a, b, c) (((a) << 24) + ((b) << 16) + (c))
+
+unsigned kernelVersion();
+inline bool isBpfSupported() {
+    return android::base::GetBoolProperty("ro.kernel.ebpf.supported", true);
+}
+
+static inline bool isAtLeastKernelVersion(unsigned major, unsigned minor, unsigned sub) {
+    return kernelVersion() >= KVER(major, minor, sub);
+}
+
+#define SKIP_IF_BPF_SUPPORTED                                                    \
+    do {                                                                         \
+        if (android::bpf::isAtLeastKernelVersion(4, 9, 0)) {                     \
+            GTEST_LOG_(INFO) << "This test is skipped since bpf is supported\n"; \
+            return;                                                              \
+        }                                                                        \
+    } while (0)
 
 #define SKIP_IF_BPF_NOT_SUPPORTED                                                    \
     do {                                                                             \
